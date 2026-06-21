@@ -6,6 +6,28 @@ from typing import Any
 
 
 @dataclass
+class TranscriptMeta:
+    status: str = "none"
+    provider: str | None = None
+    source_kind: str | None = None
+    confidence: str | None = None
+    attempted_providers: list[str] = field(default_factory=list)
+    language: str | None = None
+    text_path: str | None = None
+    segments_path: str | None = None
+    char_count: int = 0
+    excerpt: str = ""
+    evidence_snippets: list[str] = field(default_factory=list)
+    evidence_quotes: list[dict[str, Any]] = field(default_factory=list)
+    translation_status: str = "not_needed"
+    translation_path: str | None = None
+    error: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
 class RawItem:
     id: str
     canonical_url: str
@@ -17,6 +39,7 @@ class RawItem:
     raw_text: str = ""
     transcript: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
+    transcript_meta: dict[str, Any] = field(default_factory=dict)
     fetched_at: str = field(default_factory=lambda: datetime.now().isoformat(timespec="seconds"))
 
     def as_dict(self) -> dict[str, Any]:
