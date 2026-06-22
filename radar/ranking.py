@@ -32,17 +32,17 @@ def _dedup_preference(item: RawItem) -> tuple[int, int, int, int]:
 
 def deduplicate(items: list[RawItem]) -> list[RawItem]:
     selected: dict[str, RawItem] = {}
+    title_to_identity: dict[str, str] = {}
     for item in items:
         identity = canonical_identity(item.canonical_url, title=item.title)
-        # Keep the old title fallback for non-URL items and near-identical pages that
-        # do not expose a stable URL identity.
         title_key = "title:" + (re.sub(r"\W+", "", item.title.casefold()) or item.canonical_url)
-        keys = [identity]
-        if identity.startswith("title:"):
-            keys.append(title_key)
-        current = selected.get(identity)
+        existing_identity = title_to_identity.get(title_key, identity)
+        current = selected.get(existing_identity)
         if current is None or _dedup_preference(item) > _dedup_preference(current):
+            if existing_identity != identity:
+                selected.pop(existing_identity, None)
             selected[identity] = item
+            title_to_identity[title_key] = identity
     return list(selected.values())
 
 
