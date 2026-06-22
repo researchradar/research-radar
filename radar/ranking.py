@@ -4,6 +4,7 @@ import re
 from collections import defaultdict
 from typing import Any
 
+from .identity import canonical_identity
 from .models import RankedItem, RawItem
 
 
@@ -19,13 +20,29 @@ def weight(priority: str) -> float:
     return {"high": 1.0, "medium": 0.65, "low": 0.35}.get(priority, 0.5)
 
 
+def _dedup_preference(item: RawItem) -> tuple[int, int, int, int]:
+    metadata = item.metadata or {}
+    return (
+        1 if item.source_type != "aggregator" else 0,
+        1 if item.source_type == "paper" else 0,
+        1 if metadata.get("article_fetched") else 0,
+        len(item.raw_text or ""),
+    )
+
+
 def deduplicate(items: list[RawItem]) -> list[RawItem]:
     selected: dict[str, RawItem] = {}
     for item in items:
-        key = re.sub(r"\W+", "", item.title.casefold()) or item.canonical_url
-        current = selected.get(key)
-        if current is None or (current.source_type == "aggregator" and item.source_type != "aggregator"):
-            selected[key] = item
+        identity = canonical_identity(item.canonical_url, title=item.title)
+        # Keep the old title fallback for non-URL items and near-identical pages that
+        # do not expose a stable URL identity.
+        title_key = "title:" + (re.sub(r"\W+", "", item.title.casefold()) or item.canonical_url)
+        keys = [identity]
+        if identity.startswith("title:"):
+            keys.append(title_key)
+        current = selected.get(identity)
+        if current is None or _dedup_preference(item) > _dedup_preference(current):
+            selected[identity] = item
     return list(selected.values())
 
 
