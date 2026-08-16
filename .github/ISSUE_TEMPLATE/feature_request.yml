@@ -1,0 +1,45 @@
+name: Feature request
+description: Propose a reusable Research Radar improvement
+title: "[Feature]: "
+labels: []
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What user or maintainer problem should this feature solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the smallest reusable behavior or interface that would solve the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+
+  - type: textarea
+    id: security
+    attributes:
+      label: Security and trust boundaries
+      description: Note any network, filesystem, subprocess, credential, workflow, self-hosted runner, deployment, repository-write, or agent/LLM implications.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Public-project scope
+      options:
+        - label: This request can be described without private user data or private deployment details.
+          required: true
+        - label: Any example data in this request is synthetic or clearly public/redistributable.
+          required: true

@@ -1,0 +1,5 @@
+people:
+  - name: Example Researcher
+    aliases: []
+    arxiv_author: true
+    priority: 1.0

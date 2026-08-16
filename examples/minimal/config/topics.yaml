@@ -1,0 +1,16 @@
+topics:
+  embodied_ai:
+    label: Embodied AI
+    keywords:
+      - vision-language-action
+      - robot manipulation
+      - world model
+    priority: 1.0
+
+  research_tools:
+    label: Research Tools
+    keywords:
+      - literature search
+      - research automation
+      - information retrieval
+    priority: 0.7

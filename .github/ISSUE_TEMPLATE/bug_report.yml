@@ -1,0 +1,49 @@
+name: Bug report
+description: Report a reproducible problem in Research Radar
+title: "[Bug]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Do not include secrets, private research data, cookies, tokens, private URLs, or exploit details for a security vulnerability. Follow SECURITY.md for security issues.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Provide the smallest reproducible steps using synthetic/public data where possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, Research Radar commit/version, and relevant public configuration details.
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs
+      description: Remove credentials, private paths, private URLs, personal research data, and other sensitive details before pasting logs.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed secrets, private data, private URLs, local paths, hostnames, and session links from this report.
+          required: true

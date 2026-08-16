@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+
+# User workspaces and private runtime state
+workspace/
+workspaces/
+.local-radar/
+*.private.yaml
+*.private.yml
+.env
+.env.*
+!.env.example
+
+# Generated local application data
+site/
+data/
+reports/
+transcripts/
+translations/
+
+# Credentials / auth artifacts
+*.cookie
+cookies.txt
+*.token
+*.pem
+*.key
+
+# Local logs and scratch
+*.log
+.tmp/
+tmp/
+.scratch/

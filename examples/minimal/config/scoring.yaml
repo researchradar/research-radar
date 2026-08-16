@@ -1,0 +1,7 @@
+scoring:
+  recency_weight: 1.0
+  followed_person_bonus: 20
+  topic_match_bonus: 10
+  source_priority_weight: 1.0
+  interest_model:
+    enabled: false

@@ -1,0 +1,11 @@
+sources:
+  - type: arxiv
+    name: arXiv
+    enabled: true
+    query: robotics OR cs.AI
+    lookback_days: 2
+
+  - type: rss
+    name: Example Lab
+    enabled: false
+    url: https://example.org/feed.xml
