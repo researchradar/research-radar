@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlencode, urljoin, urlparse
 
 import feedparser
 import requests
@@ -23,6 +23,7 @@ from .workspace import require_workspace
 
 USER_AGENT = "ResearchRadar/0.1 (+https://github.com/researchradar/research-radar)"
 MAX_REDIRECTS = 3
+MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 
 
 @dataclass
@@ -65,7 +66,9 @@ def validate_public_url(url: str) -> None:
     except ValueError:
         literal = None
     if literal is not None and _unsafe_ip(str(literal)):
-        raise ValueError("Private, loopback, link-local, reserved, or multicast source IPs are not allowed")
+        raise ValueError(
+            "Private, loopback, link-local, reserved, or multicast source IPs are not allowed"
+        )
 
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
     try:
@@ -75,31 +78,75 @@ def validate_public_url(url: str) -> None:
     for address in addresses:
         candidate = address[4][0]
         try:
-            if _unsafe_ip(candidate):
-                raise ValueError(
-                    "Source hostname resolves to a private, loopback, link-local, reserved, or multicast address"
-                )
-        except ValueError as exc:
-            if "Source hostname" in str(exc):
-                raise
+            unsafe = _unsafe_ip(candidate)
+        except ValueError:
             continue
+        if unsafe:
+            raise ValueError(
+                "Source hostname resolves to a private, loopback, link-local, reserved, or multicast address"
+            )
 
 
-def safe_get(url: str, *, timeout: tuple[float, float] = (5.0, 15.0)) -> requests.Response:
+def _read_bounded_response(
+    response: requests.Response,
+    *,
+    max_bytes: int = MAX_RESPONSE_BYTES,
+) -> None:
+    content_length = response.headers.get("Content-Length")
+    if content_length:
+        try:
+            declared = int(content_length)
+        except ValueError:
+            declared = None
+        if declared is not None and declared > max_bytes:
+            response.close()
+            raise ValueError(
+                f"Response is too large ({declared} bytes; limit is {max_bytes} bytes)"
+            )
+
+    chunks: list[bytes] = []
+    total = 0
+    for chunk in response.iter_content(chunk_size=64 * 1024):
+        if not chunk:
+            continue
+        total += len(chunk)
+        if total > max_bytes:
+            response.close()
+            raise ValueError(f"Response exceeded the {max_bytes}-byte size limit")
+        chunks.append(chunk)
+    response._content = b"".join(chunks)
+    response._content_consumed = True
+
+
+def safe_get(
+    url: str,
+    *,
+    timeout: tuple[float, float] = (5.0, 15.0),
+    max_bytes: int = MAX_RESPONSE_BYTES,
+) -> requests.Response:
     current = url
-    session = requests.Session()
-    session.headers.update({"User-Agent": USER_AGENT})
-    for _ in range(MAX_REDIRECTS + 1):
-        validate_public_url(current)
-        response = session.get(current, timeout=timeout, allow_redirects=False)
-        if response.is_redirect or response.is_permanent_redirect:
-            location = response.headers.get("Location")
-            if not location:
-                raise ValueError("Redirect response did not include a Location header")
-            current = urljoin(current, location)
-            continue
-        response.raise_for_status()
-        return response
+    with requests.Session() as session:
+        # Do not inherit proxy or netrc credentials when fetching user-configured sources.
+        session.trust_env = False
+        session.headers.update({"User-Agent": USER_AGENT})
+        for _ in range(MAX_REDIRECTS + 1):
+            validate_public_url(current)
+            response = session.get(
+                current,
+                timeout=timeout,
+                allow_redirects=False,
+                stream=True,
+            )
+            if response.is_redirect or response.is_permanent_redirect:
+                location = response.headers.get("Location")
+                response.close()
+                if not location:
+                    raise ValueError("Redirect response did not include a Location header")
+                current = urljoin(current, location)
+                continue
+            response.raise_for_status()
+            _read_bounded_response(response, max_bytes=max_bytes)
+            return response
     raise ValueError(f"Too many redirects while fetching {url}")
 
 
@@ -136,7 +183,13 @@ def _published(entry: Any) -> str | None:
     ).strip() or None
 
 
-def _item_from_entry(entry: Any, *, source_name: str, source_type: str, priority: float = 1.0) -> RawItem | None:
+def _item_from_entry(
+    entry: Any,
+    *,
+    source_name: str,
+    source_type: str,
+    priority: float = 1.0,
+) -> RawItem | None:
     url = _entry_link(entry)
     title = _plain_text(str(getattr(entry, "title", "") or ""))
     if not title or not url:
@@ -163,18 +216,18 @@ def collect_arxiv(source: dict[str, Any]) -> list[RawItem]:
     if not query:
         raise ValueError("arXiv source requires a non-empty 'query'")
     max_results = max(1, min(int(source.get("max_results", 25)), 100))
-    response = requests.get(
-        "https://export.arxiv.org/api/query",
-        params={
+    params = urlencode(
+        {
             "search_query": query,
             "sortBy": "submittedDate",
             "sortOrder": "descending",
             "max_results": max_results,
-        },
-        headers={"User-Agent": USER_AGENT},
+        }
+    )
+    response = safe_get(
+        f"https://export.arxiv.org/api/query?{params}",
         timeout=(5.0, 20.0),
     )
-    response.raise_for_status()
     feed = feedparser.loads(response.content)
     name = str(source.get("name") or "arXiv")
     priority = float(source.get("priority", 1.0))

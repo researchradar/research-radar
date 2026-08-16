@@ -5,6 +5,7 @@ from collections import defaultdict
 from html import escape
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import yaml
 
@@ -29,11 +30,11 @@ pre { overflow-x: auto; padding: 14px; border: 1px solid #8885; border-radius: 1
 
 
 NAV = (
-    ('Today', 'index.html'),
-    ('Reading', 'reading.html'),
-    ('Search', 'search.html'),
-    ('Archive', 'archive.html'),
-    ('Following', 'following.html'),
+    ("Today", "index.html"),
+    ("Reading", "reading.html"),
+    ("Search", "search.html"),
+    ("Archive", "archive.html"),
+    ("Following", "following.html"),
 )
 
 
@@ -63,17 +64,37 @@ def _load_ranked(workspace: Path) -> list[dict[str, Any]]:
     return data if isinstance(data, list) else []
 
 
+def _safe_href(value: Any) -> str:
+    raw = str(value or "").strip()
+    parsed = urlparse(raw)
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+    ):
+        return "#"
+    return escape(raw, quote=True)
+
+
 def _card(candidate: dict[str, Any]) -> str:
     item = candidate.get("item", {})
-    title = escape(str(item.get("title") or "Untitled"))
-    url = escape(str(item.get("canonical_url") or "#"), quote=True)
-    source = escape(str(item.get("source") or "Unknown source"))
+    raw_title = str(item.get("title") or "Untitled")
+    raw_source = str(item.get("source") or "Unknown source")
+    raw_summary = str(item.get("raw_text") or "")[:600]
+    title = escape(raw_title)
+    url = _safe_href(item.get("canonical_url"))
+    source = escape(raw_source)
     published = escape(str(item.get("published_at") or "Unknown date"))
     score = escape(str(candidate.get("score", 0)))
-    summary = escape(str(item.get("raw_text") or "")[:600])
+    summary = escape(raw_summary)
     labels = [*candidate.get("matched_people", []), *candidate.get("matched_topics", [])]
     tags = "".join(f'<span class="tag">{escape(str(label))}</span>' for label in labels)
-    return f"""<article class="card" data-search="{escape((title + ' ' + source + ' ' + summary).casefold(), quote=True)}">
+    search_text = escape(
+        (raw_title + " " + raw_source + " " + raw_summary).casefold(),
+        quote=True,
+    )
+    return f"""<article class="card" data-search="{search_text}">
 <h3><a href="{url}" rel="noreferrer">{title}</a></h3>
 <div class="meta"><span class="score">Score {score}</span> · {source} · {published}</div>
 <p>{summary}</p>
@@ -101,7 +122,11 @@ box.addEventListener('input', () => {
 });
 </script>
 """
-    return '<input id="search" type="search" placeholder="Search collected items" autocomplete="off">' + cards + script
+    return (
+        '<input id="search" type="search" placeholder="Search collected items" autocomplete="off">'
+        + cards
+        + script
+    )
 
 
 def _archive_page(items: list[dict[str, Any]]) -> str:
@@ -126,7 +151,10 @@ def _following_page(workspace: Path) -> str:
         "scoring": config.get("scoring", {}),
     }
     rendered = yaml.safe_dump(public_view, sort_keys=False, allow_unicode=False)
-    return "<p>Edit these files in your private workspace to change what the radar follows.</p>" + f"<pre>{escape(rendered)}</pre>"
+    return (
+        "<p>Edit these files in your private workspace to change what the radar follows.</p>"
+        + f"<pre>{escape(rendered)}</pre>"
+    )
 
 
 def build_site(workspace_value: str | Path) -> Path:

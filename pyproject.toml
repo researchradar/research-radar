@@ -7,12 +7,28 @@ name = "research-radar"
 version = "0.1.0a1"
 description = "A self-hosted research intelligence system for fast-moving technical fields."
 readme = "README.md"
+license = {file = "LICENSE"}
+authors = [{name = "Wenda Xu"}]
 requires-python = ">=3.10"
+keywords = ["research", "rss", "arxiv", "ranking", "self-hosted"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
 dependencies = [
   "feedparser>=6.0.11",
   "PyYAML>=6.0",
   "requests>=2.31",
 ]
+
+[project.urls]
+Repository = "https://github.com/researchradar/research-radar"
+Issues = "https://github.com/researchradar/research-radar/issues"
 
 [project.scripts]
 research-radar = "radar.cli:main"
