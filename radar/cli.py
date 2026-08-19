@@ -6,6 +6,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from .collect import collect_workspace
+from .doctor import doctor_workspace
 from .site import build_site
 from .workspace import init_workspace, require_workspace
 
@@ -39,6 +40,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     build_parser = subparsers.add_parser("build-site", help="Build the static local research site")
     build_parser.add_argument("--workspace", required=True, help="Research Radar workspace")
+
+    doctor_parser = subparsers.add_parser(
+        "doctor", help="Check workspace structure and configuration without network access"
+    )
+    doctor_parser.add_argument("--workspace", required=True, help="Research Radar workspace")
 
     serve_parser = subparsers.add_parser("serve", help="Serve the generated site locally")
     serve_parser.add_argument("--workspace", required=True, help="Research Radar workspace")
@@ -94,6 +100,19 @@ def main(argv: list[str] | None = None) -> int:
             site_dir = build_site(args.workspace)
             print(f"Site built: {site_dir / 'index.html'}")
             return 0
+
+        if args.command == "doctor":
+            report = doctor_workspace(args.workspace)
+            for issue in report.issues:
+                print(f"[{issue.level.upper()}] {issue.code}: {issue.message}")
+            if not report.issues:
+                print("Workspace check passed.")
+            else:
+                print(
+                    f"Workspace check found {len(report.errors)} error(s) "
+                    f"and {len(report.warnings)} warning(s)."
+                )
+            return 0 if report.ok else 2
 
         if args.command == "serve":
             return _serve(args.workspace, args.host, args.port)
