@@ -23,6 +23,12 @@ nav a { text-decoration: none; font-weight: 600; }
 .score { font-weight: 700; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .tag { border: 1px solid #8885; border-radius: 999px; padding: 2px 8px; font-size: .82rem; }
+.explanation { margin-top: 12px; }
+.explanation summary { cursor: pointer; font-weight: 600; }
+.score-breakdown { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 8px 0; }
+.score-breakdown dt { font-weight: 600; }
+.score-breakdown dd { margin: 0; }
+.matched-signals { margin: 8px 0 0; padding-left: 20px; }
 input[type=search] { width: 100%; padding: 10px 12px; font-size: 1rem; margin: 12px 0 20px; }
 pre { overflow-x: auto; padding: 14px; border: 1px solid #8885; border-radius: 10px; }
 .empty { opacity: .7; font-style: italic; }
@@ -77,6 +83,43 @@ def _safe_href(value: Any) -> str:
     return escape(raw, quote=True)
 
 
+def _ranking_explanation(candidate: dict[str, Any]) -> str:
+    raw_breakdown = candidate.get("score_breakdown", {})
+    breakdown = raw_breakdown if isinstance(raw_breakdown, dict) else {}
+    breakdown_rows = "".join(
+        f"<dt>{escape(str(name).replace('_', ' ').title())}</dt>"
+        f"<dd>{escape(str(value))}</dd>"
+        for name, value in breakdown.items()
+    )
+    if not breakdown_rows:
+        breakdown_rows = "<dt>Score</dt><dd>No breakdown available</dd>"
+
+    signal_fields = (
+        ("People", "matched_people"),
+        ("Institutions", "matched_institutions"),
+        ("Topics", "matched_topics"),
+        ("Questions", "matched_questions"),
+    )
+    signal_rows = []
+    for label, field in signal_fields:
+        raw_values = candidate.get(field, [])
+        if not isinstance(raw_values, list) or not raw_values:
+            continue
+        values = ", ".join(escape(str(value)) for value in raw_values)
+        signal_rows.append(f"<li><strong>{label}:</strong> {values}</li>")
+    signals = (
+        f'<ul class="matched-signals">{"".join(signal_rows)}</ul>'
+        if signal_rows
+        else '<p class="meta">No named signals matched.</p>'
+    )
+
+    return f"""<details class="explanation">
+<summary>Why this ranked</summary>
+<dl class="score-breakdown">{breakdown_rows}</dl>
+{signals}
+</details>"""
+
+
 def _card(candidate: dict[str, Any]) -> str:
     item = candidate.get("item", {})
     raw_title = str(item.get("title") or "Untitled")
@@ -90,6 +133,7 @@ def _card(candidate: dict[str, Any]) -> str:
     summary = escape(raw_summary)
     labels = [*candidate.get("matched_people", []), *candidate.get("matched_topics", [])]
     tags = "".join(f'<span class="tag">{escape(str(label))}</span>' for label in labels)
+    explanation = _ranking_explanation(candidate)
     search_text = escape(
         (raw_title + " " + raw_source + " " + raw_summary).casefold(),
         quote=True,
@@ -99,6 +143,7 @@ def _card(candidate: dict[str, Any]) -> str:
 <div class="meta"><span class="score">Score {score}</span> · {source} · {published}</div>
 <p>{summary}</p>
 <div class="tags">{tags}</div>
+{explanation}
 </article>"""
 
 
