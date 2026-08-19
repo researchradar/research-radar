@@ -62,6 +62,14 @@ Your workspace contains your interests, feedback, collected content, and generat
 
 `init` does not overwrite existing configuration files, so it is safe to run again after you have customized a workspace.
 
+Check the workspace structure and configuration at any time:
+
+```bash
+research-radar doctor --workspace ~/my-radar
+```
+
+`doctor` checks required YAML shapes, source settings, empty or duplicate configuration, and workspace directory writability. It performs no DNS lookups or other network probes.
+
 ### 3. Configure what you care about
 
 Example `~/my-radar/config/people.yaml`:
@@ -161,6 +169,8 @@ The same flow runs in CI.
 Research Radar separates deterministic discovery from optional personalization.
 
 The current baseline ranker uses transparent signals including followed-person matches, optional institution/question matches, topic matches, recency, source priority, source type, explicit feedback entries, and canonical-identity deduplication. Items matching configured negative topics can be excluded.
+
+Each site card includes a collapsed **Why this ranked** section with the score breakdown and matched people, institutions, topics, and questions. Values from collected items and workspace configuration remain HTML-escaped when rendered.
 
 The scoring configuration is intentionally inspectable. A learned local interest model is planned, but is not required by the v0.1 core.
 
