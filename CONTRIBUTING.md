@@ -24,6 +24,17 @@ python -m pip install -e .
 python -m unittest discover -s tests
 ```
 
+### Public commit identity
+
+Public history must use a GitHub noreply address for both the author and committer fields. Before committing, configure the checkout with the noreply address associated with your GitHub account and verify the result with:
+
+```bash
+python scripts/check_public_history.py --range origin/main..HEAD
+git log -1 --format='%an <%ae> / %cn <%ce>'
+```
+
+The CI workflow checks new commit identities on pull requests and pushes to `main`. Keep the repository's protected-branch and merge settings enabled after any maintenance operation.
+
 If your change requires a user workspace, create one outside the source checkout:
 
 ```bash
