@@ -35,10 +35,11 @@ jobs:
           EVENT_BEFORE: ${{ github.event.before }}
           EVENT_NAME: ${{ github.event_name }}
           BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           if [ "$EVENT_NAME" = "pull_request" ]; then
-            python scripts/check_public_history.py --range "origin/$BASE_REF..HEAD"
+            python scripts/check_public_history.py --range "origin/$BASE_REF..$HEAD_SHA"
           elif [ "$EVENT_BEFORE" = "0000000000000000000000000000000000000000" ]; then
             python scripts/check_public_history.py --all
           else
